@@ -10,8 +10,9 @@ import GeofenceEditorModal from './components/GeofenceEditorModal';
 import { Photo, Project, Geofence } from './types';
 import { generatePhotoDescription, generateProjectDescription } from './services/geminiService';
 import { getCurrentPosition } from './services/geolocationService';
-import { SparklesIcon, PencilIcon } from './components/Icons';
+import { SparklesIcon, PencilIcon, SpinnerIcon } from './components/Icons';
 import PhotoSearchBar from './components/PhotoSearchBar';
+import * as dbService from './services/dbService';
 
 // Check if a point is within a geofence (circle or polygon)
 const isLocationInGeofence = (
@@ -57,6 +58,16 @@ const isLocationInGeofence = (
     return false;
 }
 
+const pluralizePolish = (count: number, single: string, few: string, many: string): string => {
+    if (count === 1) return single;
+    const lastDigit = count % 10;
+    const lastTwoDigits = count % 100;
+    if (lastDigit >= 2 && lastDigit <= 4 && (lastTwoDigits < 12 || lastTwoDigits > 14)) {
+        return few;
+    }
+    return many;
+}
+
 
 const App: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -74,6 +85,39 @@ const App: React.FC = () => {
   const [isEditingProjectDesc, setIsEditingProjectDesc] = useState(false);
   const [editedProjectDesc, setEditedProjectDesc] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDBLoading, setIsDBLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDataFromDB = async () => {
+        try {
+            await dbService.initDB();
+            const [dbProjects, dbPhotos] = await Promise.all([
+                dbService.getProjects(),
+                dbService.getPhotos(),
+            ]);
+            setProjects(dbProjects);
+            setPhotos(dbPhotos);
+        } catch (error) {
+            console.error("Failed to load data from IndexedDB", error);
+            alert("Nie udało się załadować danych z lokalnej bazy danych. Proszę spróbować odświeżyć stronę.");
+        } finally {
+            setIsDBLoading(false);
+        }
+    };
+    loadDataFromDB();
+  }, []);
+
+  useEffect(() => {
+    const photoUrls = photos.map(p => p.url);
+    // This effect's cleanup function will run for the *previous* `photos` array
+    // before the effect runs for the *new* `photos` array. This is perfect
+    // for revoking URLs of photos that were just removed from the state.
+    // The final unmount will clean up the last set of URLs.
+    return () => {
+        photoUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [photos]);
+
 
   useEffect(() => {
     setIsEditingProjectDesc(false);
@@ -119,17 +163,14 @@ const App: React.FC = () => {
         takenAt: new Date(file.lastModified).toISOString(),
       }
     });
-
+    
+    newPhotos.forEach(p => dbService.addPhoto(p));
     setPhotos(p => [...newPhotos, ...p]);
     setIsLoading(false);
   }, [projects]);
 
   const handleDeletePhoto = (photoId: string) => {
-    const photoToDelete = photos.find(p => p.id === photoId);
-    if (photoToDelete) {
-      URL.revokeObjectURL(photoToDelete.url);
-    }
-
+    dbService.deletePhoto(photoId);
     setPhotos(photos.filter(p => p.id !== photoId));
     setSelectedPhotoIds(ids => ids.filter(id => id !== photoId));
     if (selectedPhoto?.id === photoId) {
@@ -138,19 +179,22 @@ const App: React.FC = () => {
   };
 
   const handleBulkDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${selectedPhotoIds.length} photos?`)) {
-      photos.forEach(p => {
-        if (selectedPhotoIds.includes(p.id)) {
-          URL.revokeObjectURL(p.url);
-        }
-      });
+    const count = selectedPhotoIds.length;
+    const photoWord = pluralizePolish(count, 'zdjęcie', 'zdjęcia', 'zdjęć');
+    if (window.confirm(`Czy na pewno chcesz usunąć ${count} ${photoWord}?`)) {
+      selectedPhotoIds.forEach(id => dbService.deletePhoto(id));
       setPhotos(photos.filter(p => !selectedPhotoIds.includes(p.id)));
       setSelectedPhotoIds([]);
     }
   };
 
   const handleUpdatePhotoDescription = (photoId: string, description: string) => {
-    setPhotos(photos.map(p => p.id === photoId ? { ...p, description } : p));
+    const updatedPhotos = photos.map(p => p.id === photoId ? { ...p, description } : p)
+    const updatedPhoto = updatedPhotos.find(p => p.id === photoId);
+    if(updatedPhoto) {
+        dbService.updatePhoto(updatedPhoto);
+    }
+    setPhotos(updatedPhotos);
     setSelectedPhoto(p => p && p.id === photoId ? { ...p, description } : p);
   };
 
@@ -164,14 +208,19 @@ const App: React.FC = () => {
         handleUpdatePhotoDescription(photoId, description);
     } catch (error) {
         console.error("Failed to generate description:", error);
-        handleUpdatePhotoDescription(photoId, "Error: Could not generate description.");
+        handleUpdatePhotoDescription(photoId, "Błąd: Nie udało się wygenerować opisu.");
     } finally {
         setIsLoadingDescription(false);
     }
   };
 
   const handleUpdateProjectDescription = (projectId: string, description: string) => {
-    setProjects(projects.map(p => p.id === projectId ? { ...p, description } : p));
+    const updatedProjects = projects.map(p => p.id === projectId ? { ...p, description } : p);
+    const updatedProject = updatedProjects.find(p => p.id === projectId);
+    if (updatedProject) {
+        dbService.updateProject(updatedProject);
+    }
+    setProjects(updatedProjects);
     setIsEditingProjectDesc(false);
   };
 
@@ -197,6 +246,7 @@ const App: React.FC = () => {
   const handleAddProject = (name: string, parentId: string | null = null) => {
     if (name.trim() === '') return;
     const newProject: Project = { id: uuidv4(), name: name.trim(), description: null, parentId };
+    dbService.addProject(newProject);
     setProjects(p => [...p, newProject]);
   };
 
@@ -213,7 +263,10 @@ const App: React.FC = () => {
   };
 
   const handleAssignToProject = (projectId: string) => {
-    setPhotos(photos.map(p => selectedPhotoIds.includes(p.id) ? { ...p, projectId } : p));
+    const updatedPhotos = photos.map(p => selectedPhotoIds.includes(p.id) ? { ...p, projectId } : p);
+    const photosToUpdate = updatedPhotos.filter(p => selectedPhotoIds.includes(p.id));
+    photosToUpdate.forEach(p => dbService.updatePhoto(p));
+    setPhotos(updatedPhotos);
     setSelectedPhotoIds([]);
     setIsProjectSelectorOpen(false);
   };
@@ -230,13 +283,16 @@ const App: React.FC = () => {
       description: null,
       parentId
     };
-
+    
+    dbService.addProject(newProject);
     setProjects(prevProjects => [...prevProjects, newProject]);
-    setPhotos(prevPhotos =>
-      prevPhotos.map(p =>
+    
+    const updatedPhotos = photos.map(p =>
         selectedPhotoIds.includes(p.id) ? { ...p, projectId: newProject.id } : p
-      )
     );
+    const photosToUpdate = updatedPhotos.filter(p => selectedPhotoIds.includes(p.id));
+    photosToUpdate.forEach(p => dbService.updatePhoto(p));
+    setPhotos(updatedPhotos);
 
     setSelectedPhotoIds([]);
     setIsProjectSelectorOpen(false);
@@ -249,19 +305,29 @@ const App: React.FC = () => {
 
     const projectPhotos = photos.filter(p => p.projectId === activeFilter);
     if (projectPhotos.length === 0) {
-      alert("This project has no photos to generate a description from.");
+      alert("Ten projekt nie zawiera zdjęć, z których można wygenerować opis.");
       return;
     }
 
     setIsGeneratingProjectDesc(true);
     const files = projectPhotos.map(p => p.file);
     const description = await generateProjectDescription(files);
-    setProjects(projects.map(p => p.id === activeFilter ? { ...p, description } : p));
+    const updatedProjects = projects.map(p => p.id === activeFilter ? { ...p, description } : p);
+    const updatedProject = updatedProjects.find(p => p.id === activeFilter);
+    if(updatedProject) {
+        dbService.updateProject(updatedProject);
+    }
+    setProjects(updatedProjects);
     setIsGeneratingProjectDesc(false);
   };
 
   const handleUpdateProjectGeofence = (projectId: string, geofence: Geofence | null) => {
-    setProjects(projects.map(p => p.id === projectId ? { ...p, geofence: geofence || undefined } : p));
+    const updatedProjects = projects.map(p => p.id === projectId ? { ...p, geofence: geofence || undefined } : p);
+    const updatedProject = updatedProjects.find(p => p.id === projectId);
+    if(updatedProject) {
+        dbService.updateProject(updatedProject);
+    }
+    setProjects(updatedProjects);
     setEditingGeofenceForProject(null);
   };
 
@@ -347,6 +413,16 @@ const App: React.FC = () => {
     return (activeFilter !== 'all' && activeFilter !== 'unassigned') ? activeFilter : null;
   }, [activeFilter]);
 
+  if (isDBLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
+            <SpinnerIcon className="w-12 h-12 mb-4" />
+            <span className="text-xl font-semibold">Wczytywanie danych...</span>
+            <span className="text-gray-400 mt-1">Proszę czekać, inicjalizujemy Twoją lokalną bazę zdjęć.</span>
+        </div>
+    );
+  }
+
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen font-sans">
       <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
@@ -380,8 +456,8 @@ const App: React.FC = () => {
                 <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex-grow">
                         <h2 className="text-2xl font-bold text-white">
-                          {activeFilter === 'all' && 'All Photos'}
-                          {activeFilter === 'unassigned' && 'Unassigned Photos'}
+                          {activeFilter === 'all' && 'Wszystkie zdjęcia'}
+                          {activeFilter === 'unassigned' && 'Nieprzypisane zdjęcia'}
                           {activeProject && `${activeProject.name}`}
                         </h2>
                         
@@ -392,17 +468,17 @@ const App: React.FC = () => {
                                     onChange={(e) => setEditedProjectDesc(e.target.value)}
                                     className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-sm text-gray-200 focus:ring-2 focus:ring-green-500"
                                     rows={3}
-                                    placeholder="Write a description for this project..."
+                                    placeholder="Napisz opis dla tego projektu..."
                                 />
                                 <div className="flex gap-2 mt-2 justify-end">
-                                    <button onClick={() => setIsEditingProjectDesc(false)} className="px-3 py-1 text-xs rounded-md text-gray-300 hover:bg-gray-700">Cancel</button>
-                                    <button onClick={() => handleUpdateProjectDescription(activeProject.id, editedProjectDesc)} className="px-3 py-1 text-xs rounded-md bg-green-600 hover:bg-green-700 text-white">Save Description</button>
+                                    <button onClick={() => setIsEditingProjectDesc(false)} className="px-3 py-1 text-xs rounded-md text-gray-300 hover:bg-gray-700">Anuluj</button>
+                                    <button onClick={() => handleUpdateProjectDescription(activeProject.id, editedProjectDesc)} className="px-3 py-1 text-xs rounded-md bg-green-600 hover:bg-green-700 text-white">Zapisz opis</button>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 mt-1">
                                 <p className="text-sm text-gray-400">
-                                    {activeProject?.description || (filteredPhotos.length > 0 ? `${filteredPhotos.length} photos in this view` : 'No photos in this view.')}
+                                    {activeProject?.description || (filteredPhotos.length > 0 ? `${filteredPhotos.length} ${pluralizePolish(filteredPhotos.length, 'zdjęcie', 'zdjęcia', 'zdjęć')} w tym widoku` : 'Brak zdjęć w tym widoku.')}
                                 </p>
                                 {activeProject && (
                                     <button 
@@ -411,7 +487,7 @@ const App: React.FC = () => {
                                             setIsEditingProjectDesc(true);
                                         }} 
                                         className="text-gray-500 hover:text-green-400 p-1 rounded-full hover:bg-gray-700 transition-colors"
-                                        title="Edit project description"
+                                        title="Edytuj opis projektu"
                                     >
                                         <PencilIcon className="w-4 h-4" />
                                     </button>
@@ -427,7 +503,7 @@ const App: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                       >
                           <SparklesIcon className={`w-5 h-5 ${isGeneratingProjectDesc ? 'animate-spin' : ''}`} />
-                          {isGeneratingProjectDesc ? 'Generating...' : 'Generate Project Description'}
+                          {isGeneratingProjectDesc ? 'Generowanie...' : 'Wygeneruj opis projektu'}
                       </button>
                     )}
                 </div>
@@ -437,11 +513,11 @@ const App: React.FC = () => {
 
                 {selectedPhotoIds.length > 0 && (
                   <div className="bg-gray-800/80 rounded-lg p-3 my-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 backdrop-blur-sm sticky top-24 z-10 border border-gray-700">
-                    <p className="text-sm font-medium">{selectedPhotoIds.length} photos selected</p>
+                    <p className="text-sm font-medium">{selectedPhotoIds.length} {pluralizePolish(selectedPhotoIds.length, 'zdjęcie', 'zdjęcia', 'zdjęć')} zaznaczone</p>
                     <div className="flex items-center gap-2 flex-wrap justify-end self-end sm:self-center">
-                      <button onClick={clearSelection} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white rounded-md hover:bg-gray-700/50">Clear</button>
-                      <button onClick={() => setIsProjectSelectorOpen(true)} className="px-3 py-1.5 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Assign to Project</button>
-                      <button onClick={handleBulkDelete} className="px-3 py-1.5 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white">Delete</button>
+                      <button onClick={clearSelection} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white rounded-md hover:bg-gray-700/50">Wyczyść</button>
+                      <button onClick={() => setIsProjectSelectorOpen(true)} className="px-3 py-1.5 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Przypisz do projektu</button>
+                      <button onClick={handleBulkDelete} className="px-3 py-1.5 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white">Usuń</button>
                     </div>
                   </div>
                 )}

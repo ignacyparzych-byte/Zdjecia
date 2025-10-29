@@ -14,8 +14,8 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onSelect, onDelete, selec
   if (photos.length === 0) {
     return (
       <div className="text-center py-16">
-        <h2 className="text-xl font-medium text-gray-400">Your gallery is empty.</h2>
-        <p className="mt-1 text-gray-500">Upload some photos to get started!</p>
+        <h2 className="text-xl font-medium text-gray-400">Twoja galeria jest pusta.</h2>
+        <p className="mt-1 text-gray-500">Prześlij kilka zdjęć, aby rozpocząć!</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onSelect, onDelete, selec
               <button
                 onClick={(e) => handleToggle(e, photo.id)}
                 className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-200 z-10 ${isSelected ? 'bg-green-500 border-green-400' : 'bg-black/30 border-white/50 group-hover:border-white'}`}
-                aria-label="Select photo"
+                aria-label="Wybierz zdjęcie"
               >
                 {isSelected && (
                   <svg className="w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
@@ -63,7 +63,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onSelect, onDelete, selec
               <button
                 onClick={(e) => handleDelete(e, photo.id)}
                 className="absolute top-2 right-2 p-1.5 bg-red-600/70 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all duration-300 transform scale-75 group-hover:scale-100 z-10"
-                aria-label="Delete photo"
+                aria-label="Usuń zdjęcie"
               >
                 <TrashIcon className="w-5 h-5" />
               </button>

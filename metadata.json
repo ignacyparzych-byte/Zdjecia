@@ -1,6 +1,6 @@
 {
   "name": "Zdjęcia AG-Complex",
-  "description": "An intelligent photo management application for AG-Complex that lets you upload photos from your devices and uses Gemini to automatically generate creative descriptions for them.",
+  "description": "Inteligentna aplikacja do zarządzania zdjęciami dla AG-Complex, która pozwala na przesyłanie zdjęć z urządzeń i wykorzystuje Gemini do automatycznego generowania kreatywnych opisów.",
   "requestFramePermissions": [
     "geolocation"
   ]

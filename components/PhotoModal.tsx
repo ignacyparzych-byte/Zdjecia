@@ -12,8 +12,8 @@ interface PhotoModalProps {
 }
 
 const formatDate = (isoString: string) => {
-    if (!isoString) return 'N/A';
-    return new Date(isoString).toLocaleString(undefined, {
+    if (!isoString) return 'B/D';
+    return new Date(isoString).toLocaleString('pl-PL', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -74,14 +74,14 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
             <button
               onClick={onClose}
               className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
-              aria-label="Close modal"
+              aria-label="Zamknij okno"
             >
               <CloseIcon className="w-6 h-6" />
             </button>
           </div>
 
           <div className="text-sm text-gray-400 mb-6 space-y-2 border-b border-gray-700 pb-4">
-            <div>Size: {(photo.size / 1024 / 1024).toFixed(2)} MB</div>
+            <div>Rozmiar: {(photo.size / 1024 / 1024).toFixed(2)} MB</div>
             {photo.location && (
                 <div className="flex items-center gap-2">
                     <MapPinIcon className="w-4 h-4 text-gray-500" />
@@ -91,34 +91,34 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
              <div className="flex items-start gap-2">
                 <ClockIcon className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
                 <div>
-                    <div>Taken: {formatDate(photo.takenAt)}</div>
-                    <div>Uploaded: {formatDate(photo.createdAt)}</div>
+                    <div>Zrobiono: {formatDate(photo.takenAt)}</div>
+                    <div>Przesłano: {formatDate(photo.createdAt)}</div>
                 </div>
             </div>
           </div>
 
           <div className="flex-grow space-y-2">
             <div className="flex justify-between items-center">
-                <h4 className="font-semibold text-gray-200">Description</h4>
+                <h4 className="font-semibold text-gray-200">Opis</h4>
                 {!isEditing && (
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => onGenerateDescription(photo.id)}
                             disabled={isLoadingDescription}
                             className="flex items-center gap-1.5 text-sm text-green-400 hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Generate a new description with AI"
+                            title="Wygeneruj nowy opis za pomocą AI"
                         >
                             <SparklesIcon className="w-4 h-4" />
-                            {photo.description ? 'Regenerate' : 'Generate'}
+                            {photo.description ? 'Wygeneruj ponownie' : 'Wygeneruj'}
                         </button>
                         <button 
                             onClick={() => setIsEditing(true)} 
                             disabled={isLoadingDescription}
                             className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Manually edit description"
+                            title="Edytuj opis ręcznie"
                         >
                             <PencilIcon className="w-4 h-4" />
-                            Edit
+                            Edytuj
                         </button>
                     </div>
                 )}
@@ -126,7 +126,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
             {isLoadingDescription ? (
               <div className="flex items-center space-x-2 text-gray-400">
                 <SpinnerIcon className="w-5 h-5" />
-                <span>Generating...</span>
+                <span>Generowanie...</span>
               </div>
             ) : isEditing ? (
               <div>
@@ -134,16 +134,16 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                     value={editedDesc}
                     onChange={(e) => setEditedDesc(e.target.value)}
                     className="w-full h-36 bg-gray-900 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    placeholder="Write a description..."
+                    placeholder="Napisz opis..."
                 />
                 <div className="flex gap-2 mt-2 justify-end">
-                    <button onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm rounded-md text-gray-300 hover:bg-gray-700">Cancel</button>
-                    <button onClick={handleSaveDescription} className="px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Save</button>
+                    <button onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm rounded-md text-gray-300 hover:bg-gray-700">Anuluj</button>
+                    <button onClick={handleSaveDescription} className="px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Zapisz</button>
                 </div>
               </div>
             ) : (
               <p className="text-gray-300 whitespace-pre-wrap leading-relaxed min-h-[4rem]">
-                {photo.description || "No description. Generate one with AI or click 'Edit' to add one."}
+                {photo.description || "Brak opisu. Wygeneruj go za pomocą AI lub kliknij 'Edytuj', aby go dodać."}
               </p>
             )}
           </div>
@@ -154,7 +154,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 className="w-full inline-flex justify-center items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500 transition-colors"
               >
                <TrashIcon className="w-5 h-5"/>
-                Delete Photo
+                Usuń zdjęcie
              </button>
            </div>
         </div>

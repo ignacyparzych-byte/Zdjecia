@@ -13,7 +13,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <button
               onClick={onMenuClick}
               className="lg:hidden mr-3 p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-700"
-              aria-label="Open sidebar"
+              aria-label="Otwórz pasek boczny"
             >
               <MenuIcon className="h-6 w-6" />
             </button>
@@ -24,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             </span>
             </h1>
         </div>
-        <p className="hidden sm:block text-sm text-gray-400">Your Intelligent Photo Companion</p>
+        <p className="hidden sm:block text-sm text-gray-400">Twój Inteligentny Asystent Zdjęć</p>
       </div>
     </header>
   );

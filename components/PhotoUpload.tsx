@@ -64,14 +64,14 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({ onUpload, isLoading, projects
   return (
     <div className="bg-gray-800 p-4 rounded-lg space-y-4">
         <div>
-            <label htmlFor="project-select" className="block text-sm font-medium text-gray-300 mb-1">Assign to Project (Optional)</label>
+            <label htmlFor="project-select" className="block text-sm font-medium text-gray-300 mb-1">Przypisz do projektu (opcjonalnie)</label>
             <select
                 id="project-select"
                 value={selectedProjectId || ''}
                 onChange={(e) => setSelectedProjectId(e.target.value || null)}
                 className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-green-500"
             >
-                <option value="">Assign later (Unassigned)</option>
+                <option value="">Przypisz później (Nieprzypisane)</option>
                 {topLevelProjects.map(p => <ProjectOption key={p.id} project={p} allProjects={projects} level={0} />)}
             </select>
         </div>
@@ -85,15 +85,15 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({ onUpload, isLoading, projects
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
                 <div className='flex-1 flex flex-col items-center text-gray-400'>
                     <UploadIcon className="w-10 h-10 mb-2" />
-                    <p className="font-semibold">Drag &amp; drop photos here</p>
-                    <p className="text-sm text-gray-500">or</p>
+                    <p className="font-semibold">Przeciągnij i upuść zdjęcia tutaj</p>
+                    <p className="text-sm text-gray-500">lub</p>
                     <button
                         type="button"
                         onClick={open}
                         disabled={isLoading}
                         className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                     >
-                        Upload from Device
+                        Prześlij z urządzenia
                     </button>
                 </div>
 
@@ -101,7 +101,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({ onUpload, isLoading, projects
                 
                 <div className='flex-1 flex flex-col items-center text-gray-400'>
                      <CameraIcon className="w-10 h-10 mb-2" />
-                     <p className="font-semibold">Capture in the moment</p>
+                     <p className="font-semibold">Uchwyć chwilę</p>
                      <p className="text-sm text-gray-500">&nbsp;</p>
                      <button
                         type="button"
@@ -109,7 +109,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({ onUpload, isLoading, projects
                         disabled={isLoading}
                         className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
                     >
-                        Take a Photo
+                        Zrób zdjęcie
                     </button>
                     <input
                         type="file"
@@ -125,8 +125,8 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({ onUpload, isLoading, projects
              {isLoading && (
                 <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center rounded-lg">
                     <div className="text-center">
-                        <p className="text-white text-lg font-semibold">Processing images...</p>
-                        <p className="text-gray-300 text-sm">Generating descriptions with Gemini.</p>
+                        <p className="text-white text-lg font-semibold">Przetwarzanie zdjęć...</p>
+                        <p className="text-gray-300 text-sm">Generowanie opisów za pomocą Gemini.</p>
                     </div>
                 </div>
              )}

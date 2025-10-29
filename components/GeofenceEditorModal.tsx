@@ -129,17 +129,17 @@ const GeofenceEditorModal: React.FC<GeofenceEditorModalProps> = ({ project, onCl
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">Edit Geofence for "{project.name}"</h3>
+          <h3 className="text-lg font-semibold text-white">Edytuj geostrefę dla "{project.name}"</h3>
           <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white">
             <CloseIcon className="w-5 h-5" />
           </button>
         </div>
         <div id="map-container" className="flex-grow w-full h-full bg-gray-700" style={{minHeight: '400px'}}></div>
         <div className="p-4 border-t border-gray-700 flex justify-between items-center">
-            <p className="text-sm text-gray-400">Draw a circle or polygon on the map.</p>
+            <p className="text-sm text-gray-400">Narysuj okrąg lub wielokąt na mapie.</p>
             <div className="flex gap-2">
-                <button onClick={handleClear} className="px-4 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700">Clear</button>
-                <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 hover:bg-green-700 text-white">Save Changes</button>
+                <button onClick={handleClear} className="px-4 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700">Wyczyść</button>
+                <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 hover:bg-green-700 text-white">Zapisz zmiany</button>
             </div>
         </div>
       </div>

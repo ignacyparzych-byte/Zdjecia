@@ -38,7 +38,7 @@ const ProjectOption: React.FC<ProjectOptionProps> = ({ project, level, onSelect,
         <button 
             onClick={handleAddClick} 
             className="ml-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-green-500/30 text-green-400"
-            title={`Add subfolder to ${project.name}`}
+            title={`Dodaj podfolder do ${project.name}`}
         >
             <PlusIcon className="w-4 h-4" />
         </button>
@@ -109,7 +109,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">Assign to Project</h3>
+          <h3 className="text-lg font-semibold text-white">Przypisz do projektu</h3>
           <button
             onClick={onClose}
             className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
@@ -129,7 +129,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               onInitiateAddSubfolder={handleInitiateAddSubfolder}
             />
           ))}
-          {projects.length === 0 && !isAddingProject && <p className="text-gray-400 text-center py-4">No projects yet. Create one below.</p>}
+          {projects.length === 0 && !isAddingProject && <p className="text-gray-400 text-center py-4">Brak projektów. Utwórz nowy poniżej.</p>}
         </div>
 
         <div className="p-4 border-t border-gray-700 mt-auto">
@@ -137,21 +137,21 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
              <div>
                 {parentProject && (
                     <p className="text-sm text-gray-400 mb-2">
-                        Adding subfolder to: <span className="font-semibold text-gray-200">{parentProject.name}</span>
+                        Dodawanie podfolderu do: <span className="font-semibold text-gray-200">{parentProject.name}</span>
                     </p>
                 )}
                 <input
                     type="text"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
-                    placeholder={parentForNewProject ? "New subfolder name" : "New project name"}
+                    placeholder={parentForNewProject ? "Nazwa nowego podfolderu" : "Nazwa nowego projektu"}
                     className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-gray-200 focus:ring-2 focus:ring-green-500"
                     autoFocus
                     onKeyDown={(e) => e.key === 'Enter' && handleAddNewProject()}
                 />
                 <div className="flex gap-2 mt-2 justify-end">
-                    <button onClick={handleCancelAdd} className="px-3 py-1 text-sm rounded-md text-gray-300 hover:bg-gray-700">Cancel</button>
-                    <button onClick={handleAddNewProject} className="px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Create &amp; Assign</button>
+                    <button onClick={handleCancelAdd} className="px-3 py-1 text-sm rounded-md text-gray-300 hover:bg-gray-700">Anuluj</button>
+                    <button onClick={handleAddNewProject} className="px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Utwórz i przypisz</button>
                 </div>
             </div>
           ) : (
@@ -160,7 +160,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-green-300 hover:bg-green-500/20 transition-colors"
             >
               <PlusIcon className="w-5 h-5" />
-              Create New Project
+              Utwórz nowy projekt
             </button>
           )}
         </div>

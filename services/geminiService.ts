@@ -23,7 +23,7 @@ export const generatePhotoDescription = async (file: File): Promise<string> => {
     };
 
     const textPart = {
-      text: "Describe this image in a creative and engaging way. Focus on the mood, atmosphere, and any interesting details. Be descriptive but concise.",
+      text: "Opisz to zdjęcie w kreatywny i angażujący sposób. Skup się na nastroju, atmosferze i wszelkich interesujących detalach. Bądź opisowy, ale zwięzły.",
     };
 
     const response = await ai.models.generateContent({
@@ -34,7 +34,7 @@ export const generatePhotoDescription = async (file: File): Promise<string> => {
     return response.text;
   } catch (error) {
     console.error("Error generating photo description:", error);
-    return "Could not generate a description for this image.";
+    return "Nie udało się wygenerować opisu dla tego zdjęcia.";
   }
 };
 
@@ -56,7 +56,7 @@ export const generateProjectDescription = async (files: File[]): Promise<string>
     );
 
     const textPart = {
-      text: `Analyze these images and generate a single, cohesive description for the entire collection. What is the common theme, story, or mood? Be creative and evocative.`,
+      text: `Przeanalizuj te zdjęcia i wygeneruj jeden, spójny opis dla całej kolekcji. Jaki jest wspólny motyw, historia lub nastrój? Bądź kreatywny i sugestywny.`,
     };
 
     const response = await ai.models.generateContent({
@@ -67,6 +67,6 @@ export const generateProjectDescription = async (files: File[]): Promise<string>
     return response.text;
   } catch (error) {
     console.error("Error generating project description:", error);
-    return "Could not generate a description for this project.";
+    return "Nie udało się wygenerować opisu dla tego projektu.";
   }
 };

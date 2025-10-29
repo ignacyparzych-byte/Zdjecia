@@ -53,7 +53,7 @@ const NewItemInput: React.FC<{ onAdd: (name: string) => void, onCancel: () => vo
                     if (e.key === 'Enter') handleAdd();
                     if (e.key === 'Escape') onCancel();
                 }}
-                placeholder="New item name..."
+                placeholder="Nazwa nowego elementu..."
                 className="w-full bg-gray-900 border border-gray-600 rounded p-1 text-sm focus:ring-1 focus:ring-green-500"
             />
         </div>
@@ -102,10 +102,10 @@ const ProjectItem: React.FC<ProjectItemProps> = ({ project, allProjects, activeF
                 </button>
                 {renderCount(photoCounts[project.id])}
                 <div className="flex items-center ml-2 opacity-0 group-hover:opacity-100">
-                    <button onClick={handleGeofenceClick} className="p-1 rounded-md hover:bg-blue-500/30 text-blue-400" title="Edit Geofence">
+                    <button onClick={handleGeofenceClick} className="p-1 rounded-md hover:bg-blue-500/30 text-blue-400" title="Edytuj geostrefę">
                         <MapPinIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={handleAddClick} className="p-1 rounded-md hover:bg-green-500/30 text-green-400" title="Add Subfolder">
+                    <button onClick={handleAddClick} className="p-1 rounded-md hover:bg-green-500/30 text-green-400" title="Dodaj podfolder">
                         <PlusIcon className="w-4 h-4" />
                     </button>
                 </div>
@@ -158,19 +158,19 @@ const DateFilter: React.FC<{ onApply: (start: string | null, end: string | null)
 
     return (
         <div className="px-2 py-3 border-t border-b border-gray-700 my-2">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Filter by Date</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Filtruj po dacie</h3>
             <div className="space-y-2 text-sm">
                 <div>
-                    <label htmlFor="start-date" className="text-gray-400">From</label>
+                    <label htmlFor="start-date" className="text-gray-400">Od</label>
                     <input type="date" id="start-date" value={start} onChange={e => setStart(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-1 text-sm mt-1"/>
                 </div>
                 <div>
-                    <label htmlFor="end-date" className="text-gray-400">To</label>
+                    <label htmlFor="end-date" className="text-gray-400">Do</label>
                     <input type="date" id="end-date" value={end} onChange={e => setEnd(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded p-1 text-sm mt-1"/>
                 </div>
                 <div className="flex gap-2 pt-2">
-                    <button onClick={handleApply} className="flex-1 px-2 py-1 text-xs rounded-md bg-green-600 hover:bg-green-700 text-white">Apply</button>
-                    <button onClick={handleClear} className="flex-1 px-2 py-1 text-xs rounded-md text-gray-300 hover:bg-gray-600">Clear</button>
+                    <button onClick={handleApply} className="flex-1 px-2 py-1 text-xs rounded-md bg-green-600 hover:bg-green-700 text-white">Zastosuj</button>
+                    <button onClick={handleClear} className="flex-1 px-2 py-1 text-xs rounded-md text-gray-300 hover:bg-gray-600">Wyczyść</button>
                 </div>
             </div>
         </div>
@@ -237,13 +237,13 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
       `}>
         <nav className="flex flex-col gap-2">
           <div>
-            <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Library</h3>
+            <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Biblioteka</h3>
             <button onClick={() => onFilterChange('all')} className={getButtonClass(activeFilter === 'all')}>
-              All Photos
+              Wszystkie zdjęcia
               {renderCount(photoCounts.all)}
             </button>
             <button onClick={() => onFilterChange('unassigned')} className={getButtonClass(activeFilter === 'unassigned')}>
-              Unassigned
+              Nieprzypisane
               {renderCount(photoCounts.unassigned)}
             </button>
           </div>
@@ -252,11 +252,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
 
           <div>
             <div className="flex justify-between items-center px-2 mt-2 mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Projects</h3>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Projekty</h3>
               <button 
                 onClick={() => setIsAddingProject(true)} 
                 className="p-1 rounded-md text-green-400 hover:bg-green-500/20" 
-                title="Add new project"
+                title="Dodaj nowy projekt"
               >
                 <PlusIcon className="w-4 h-4" />
               </button>
@@ -264,7 +264,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             <div className="relative px-2 mb-2">
               <input 
                   type="text"
-                  placeholder="Filter projects..."
+                  placeholder="Filtruj projekty..."
                   value={projectSearchQuery}
                   onChange={(e) => setProjectSearchQuery(e.target.value)}
                   className="w-full bg-gray-900 border border-gray-600 rounded-md pl-8 pr-2 py-1.5 text-sm focus:ring-1 focus:ring-green-500"
