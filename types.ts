@@ -1,7 +1,7 @@
 export interface Photo {
   id: string;
   url: string;
-  file: File;
+  file?: File;
   name: string;
   size: number;
   description: string | null;

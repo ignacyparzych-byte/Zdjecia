@@ -49,7 +49,9 @@ export const addPhoto = async (photo: Photo): Promise<void> => {
   const db = await initDB();
   const tx = db.transaction(PHOTO_STORE, 'readwrite');
   const store = tx.objectStore(PHOTO_STORE);
-  store.add(photo);
+  // Destructure to remove the 'file' property, which shouldn't be persisted.
+  const { file, ...photoToStore } = photo;
+  store.add(photoToStore);
   return transactionPromise(tx);
 };
 
@@ -61,7 +63,7 @@ export const getPhotos = async (): Promise<Photo[]> => {
 
     return new Promise((resolve, reject) => {
         request.onsuccess = () => {
-            // Po prostu zwracamy obiekty z bazy danych. URL jest już w nich zawarty.
+            // Returns photos without the 'file' property.
             resolve(request.result);
         };
         request.onerror = () => reject(request.error);
@@ -72,7 +74,9 @@ export const updatePhoto = async (photo: Photo): Promise<void> => {
     const db = await initDB();
     const tx = db.transaction(PHOTO_STORE, 'readwrite');
     const store = tx.objectStore(PHOTO_STORE);
-    store.put(photo);
+    // Destructure to remove the 'file' property, which shouldn't be persisted.
+    const { file, ...photoToStore } = photo;
+    store.put(photoToStore);
     return transactionPromise(tx);
 };
 

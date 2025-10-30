@@ -9,6 +9,12 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+export const urlToTreatedFile = async (url: string, filename: string): Promise<File> => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type });
+};
+
 export const generatePhotoDescription = async (file: File): Promise<string> => {
   // Fix: Per coding guidelines, assume API_KEY is always available.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });

@@ -8,7 +8,7 @@ import Sidebar from './components/Sidebar';
 import ProjectSelector from './components/ProjectSelector';
 import GeofenceEditorModal from './components/GeofenceEditorModal';
 import { Photo, Project, Geofence } from './types';
-import { generatePhotoDescription, generateProjectDescription } from './services/geminiService';
+import { generatePhotoDescription, generateProjectDescription, urlToTreatedFile } from './services/geminiService';
 import { getCurrentPosition } from './services/geolocationService';
 import { SparklesIcon, PencilIcon, SpinnerIcon } from './components/Icons';
 import PhotoSearchBar from './components/PhotoSearchBar';
@@ -53,8 +53,8 @@ const seedInitialData = async () => {
         const file = await createSampleFile(info.url, info.name);
         const photo: Photo = {
             id: uuidv4(),
-            url: URL.createObjectURL(file),
-            file: file,
+            url: URL.createObjectURL(file), // Temporary blob URL for initial display
+            file: file, // File object for immediate use (upload/AI)
             name: file.name,
             size: file.size,
             description: info.desc,
@@ -62,11 +62,21 @@ const seedInitialData = async () => {
             createdAt: new Date(Date.now() - Math.random() * 1000 * 3600 * 24 * 3).toISOString(), // random upload date in last 3 days
             takenAt: new Date(Date.now() - Math.random() * 1000 * 3600 * 24 * 30).toISOString(), // random taken date in last 30 days
         };
-        return photo;
+        // For seeding, we'll upload them to Firebase as well to simulate real data
+        try {
+            const { storagePath, downloadURL } = await firebaseService.uploadPhoto(file);
+            const finalPhoto = { ...photo, url: downloadURL, storagePath, file: undefined };
+            await dbService.addPhoto(finalPhoto);
+            return finalPhoto;
+        } catch (e) {
+            console.error("Failed to seed photo to Firebase, adding locally only", e);
+            await dbService.addPhoto(photo);
+            return photo;
+        }
     });
 
+
     const samplePhotos = await Promise.all(samplePhotosPromises);
-    await Promise.all(samplePhotos.map(p => dbService.addPhoto(p)));
     
     console.log("Seeding complete.");
     return { sampleProjects, samplePhotos };
@@ -175,13 +185,15 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // This effect revokes temporary blob URLs to prevent memory leaks.
+    // It runs when the component unmounts or when the `photos` array changes.
     const photoUrls = photos.map(p => p.url);
-    // This effect's cleanup function will run for the *previous* `photos` array
-    // before the effect runs for the *new* `photos` array. This is perfect
-    // for revoking URLs of photos that were just removed from the state.
-    // The final unmount will clean up the last set of URLs.
     return () => {
-        photoUrls.forEach(url => URL.revokeObjectURL(url));
+        photoUrls.forEach(url => {
+            if (url && url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+            }
+        });
     };
   }, [photos]);
 
@@ -219,8 +231,8 @@ const App: React.FC = () => {
 
       return {
         id: uuidv4(),
-        url: URL.createObjectURL(file),
-        file: file,
+        url: URL.createObjectURL(file), // Temporary local URL for immediate display
+        file: file, // Keep file in memory for upload and AI processing
         name: file.name,
         size: file.size,
         description: null,
@@ -231,22 +243,25 @@ const App: React.FC = () => {
       }
     });
     
-    // Add to state and DB immediately for UI responsiveness
+    // Add to state and DB immediately for UI responsiveness.
+    // dbService automatically strips the 'file' property before saving.
     newPhotos.forEach(p => dbService.addPhoto(p));
     setPhotos(p => [...newPhotos, ...p]);
     setIsLoading(false);
 
     // Now, start uploading to Firebase in the background
     for (const newPhoto of newPhotos) {
+        if (!newPhoto.file) continue; // Should not happen for new photos
         try {
             const { storagePath, downloadURL } = await firebaseService.uploadPhoto(newPhoto.file);
-            // Upload successful, create the updated photo object
-            const updatedPhoto = { ...newPhoto, storagePath, url: downloadURL };
+            // Upload successful, create the final photo object without the file blob
+            const { file, ...photoWithoutFile } = newPhoto;
+            const updatedPhoto = { ...photoWithoutFile, storagePath, url: downloadURL };
             
-            // Update in DB
+            // Update in DB with the permanent URL
             await dbService.updatePhoto(updatedPhoto);
             
-            // Update in state, replacing the temporary local version
+            // Update in state, replacing the temporary local version and removing the file
             setPhotos(currentPhotos => 
                 currentPhotos.map(p => p.id === newPhoto.id ? updatedPhoto : p)
             );
@@ -318,7 +333,13 @@ const App: React.FC = () => {
 
     setIsLoadingDescription(true);
     try {
-        const description = await generatePhotoDescription(photoToDescribe.file);
+        // If file object exists in-memory (just uploaded), use it.
+        // Otherwise, fetch it from its cloud URL.
+        const fileForGemini = photoToDescribe.file || await urlToTreatedFile(photoToDescribe.url, photoToDescribe.name);
+        if (!fileForGemini) {
+            throw new Error("Could not retrieve file data for description generation.");
+        }
+        const description = await generatePhotoDescription(fileForGemini);
         handleUpdatePhotoDescription(photoId, description);
     } catch (error) {
         console.error("Failed to generate description:", error);
@@ -424,15 +445,22 @@ const App: React.FC = () => {
     }
 
     setIsGeneratingProjectDesc(true);
-    const files = projectPhotos.map(p => p.file);
-    const description = await generateProjectDescription(files);
-    const updatedProjects = projects.map(p => p.id === activeFilter ? { ...p, description } : p);
-    const updatedProject = updatedProjects.find(p => p.id === activeFilter);
-    if(updatedProject) {
-        dbService.updateProject(updatedProject);
+    try {
+        const filePromises = projectPhotos.map(p => p.file || urlToTreatedFile(p.url, p.name));
+        const files = await Promise.all(filePromises);
+        const description = await generateProjectDescription(files);
+        const updatedProjects = projects.map(p => p.id === activeFilter ? { ...p, description } : p);
+        const updatedProject = updatedProjects.find(p => p.id === activeFilter);
+        if(updatedProject) {
+            dbService.updateProject(updatedProject);
+        }
+        setProjects(updatedProjects);
+    } catch(error) {
+        console.error("Failed to generate project description", error);
+        alert("Wystąpił błąd podczas generowania opisu projektu.");
+    } finally {
+        setIsGeneratingProjectDesc(false);
     }
-    setProjects(updatedProjects);
-    setIsGeneratingProjectDesc(false);
   };
 
   const handleUpdateProjectGeofence = (projectId: string, geofence: Geofence | null) => {
