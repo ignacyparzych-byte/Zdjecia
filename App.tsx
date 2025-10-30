@@ -14,6 +14,64 @@ import { SparklesIcon, PencilIcon, SpinnerIcon } from './components/Icons';
 import PhotoSearchBar from './components/PhotoSearchBar';
 import * as dbService from './services/dbService';
 
+// Helper to fetch a placeholder image and convert it to a File object
+const createSampleFile = async (url: string, name: string): Promise<File> => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new File([blob], name, { type: blob.type });
+};
+
+// Function to seed the database with initial sample data
+const seedInitialData = async () => {
+    console.log("Seeding initial data...");
+    // Projects
+    const p1: Project = { id: uuidv4(), name: "Projekt Mostu 'Tęcza'", description: "Budowa nowoczesnego mostu drogowego nad rzeką Bystrzycą.", parentId: null };
+    const p1_1: Project = { id: uuidv4(), name: "Faza 1: Wykopy i fundamenty", description: "Prace ziemne i przygotowanie podłoża.", parentId: p1.id };
+    const p1_2: Project = { id: uuidv4(), name: "Faza 2: Konstrukcja nośna", description: "Montaż stalowej konstrukcji i pylonów.", parentId: p1.id };
+    const p2: Project = { id: uuidv4(), name: "Rewitalizacja Parku Centralnego", description: "Odnawianie alejek, nasadzenia zieleni i budowa placu zabaw.", parentId: null };
+    const p3: Project = { id: uuidv4(), name: "Budowa Osiedla 'Zielone Wzgórza'", description: "Kompleksowa budowa osiedla mieszkaniowego.", parentId: null };
+
+    const sampleProjects = [p1, p1_1, p1_2, p2, p3];
+    await Promise.all(sampleProjects.map(p => dbService.addProject(p)));
+
+    // Photos
+    const photoInfos = [
+        { url: 'https://picsum.photos/seed/p1_1_a/800/600', name: 'wykop-pod-filar.jpg', projectId: p1_1.id, desc: "Szeroki wykop pod główny filar wschodni." },
+        { url: 'https://picsum.photos/seed/p1_1_b/800/600', name: 'zbrojenie-fundamentu.jpg', projectId: p1_1.id, desc: "Prace zbrojeniowe przed wylaniem betonu." },
+        { url: 'https://picsum.photos/seed/p1_2_a/800/600', name: 'montaz-przesla.jpg', projectId: p1_2.id, desc: "Dźwig podnoszący pierwszy element przęsła." },
+        { url: 'https://picsum.photos/seed/p1_2_b/800/600', name: 'konstrukcja-stalowa.jpg', projectId: p1_2.id, desc: "Widok na zmontowaną część konstrukcji stalowej." },
+        { url: 'https://picsum.photos/seed/p2_a/800/600', name: 'nowe-alejki.jpg', projectId: p2.id, desc: "Nowo ułożona kostka brukowa na głównej alei parkowej." },
+        { url: 'https://picsum.photos/seed/p2_b/800/600', name: 'plac-zabaw.jpg', projectId: p2.id, desc: "Montaż huśtawek na nowym placu zabaw." },
+        { url: 'https://picsum.photos/seed/p2_c/800/600', name: 'sadzenie-drzew.jpg', projectId: p2.id, desc: "Ekipa ogrodników sadząca młode dęby." },
+        { url: 'https://picsum.photos/seed/p3_a/800/600', name: 'stan-surowy-blok-a.jpg', projectId: p3.id, desc: "Budynek A w stanie surowym otwartym." },
+        { url: 'https://picsum.photos/seed/un_a/800/600', name: 'pomiar-geodezyjny.jpg', projectId: null, desc: "Geodeta wykonujący pomiary kontrolne terenu." },
+        { url: 'https://picsum.photos/seed/un_b/800/600', name: 'dostawa-materialow.jpg', projectId: null, desc: "Ciężarówka z dostawą materiałów budowlanych na plac." },
+    ];
+
+    const samplePhotosPromises = photoInfos.map(async (info) => {
+        const file = await createSampleFile(info.url, info.name);
+        const photo: Photo = {
+            id: uuidv4(),
+            url: URL.createObjectURL(file),
+            file: file,
+            name: file.name,
+            size: file.size,
+            description: info.desc,
+            projectId: info.projectId,
+            createdAt: new Date(Date.now() - Math.random() * 1000 * 3600 * 24 * 3).toISOString(), // random upload date in last 3 days
+            takenAt: new Date(Date.now() - Math.random() * 1000 * 3600 * 24 * 30).toISOString(), // random taken date in last 30 days
+        };
+        return photo;
+    });
+
+    const samplePhotos = await Promise.all(samplePhotosPromises);
+    await Promise.all(samplePhotos.map(p => dbService.addPhoto(p)));
+    
+    console.log("Seeding complete.");
+    return { sampleProjects, samplePhotos };
+};
+
+
 // Check if a point is within a geofence (circle or polygon)
 const isLocationInGeofence = (
     photoLocation: { lat: number, lng: number },
@@ -91,12 +149,20 @@ const App: React.FC = () => {
     const loadDataFromDB = async () => {
         try {
             await dbService.initDB();
-            const [dbProjects, dbPhotos] = await Promise.all([
+            let [dbProjects, dbPhotos] = await Promise.all([
                 dbService.getProjects(),
                 dbService.getPhotos(),
             ]);
-            setProjects(dbProjects);
-            setPhotos(dbPhotos);
+
+            // Check if DB is empty and seed if necessary
+            if (dbProjects.length === 0 && dbPhotos.length === 0) {
+                const { sampleProjects, samplePhotos } = await seedInitialData();
+                setProjects(sampleProjects);
+                setPhotos(samplePhotos);
+            } else {
+                setProjects(dbProjects);
+                setPhotos(dbPhotos);
+            }
         } catch (error) {
             console.error("Failed to load data from IndexedDB", error);
             alert("Nie udało się załadować danych z lokalnej bazy danych. Proszę spróbować odświeżyć stronę.");
@@ -513,7 +579,7 @@ const App: React.FC = () => {
 
                 {selectedPhotoIds.length > 0 && (
                   <div className="bg-gray-800/80 rounded-lg p-3 my-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 backdrop-blur-sm sticky top-24 z-10 border border-gray-700">
-                    <p className="text-sm font-medium">{selectedPhotoIds.length} {pluralizePolish(selectedPhotoIds.length, 'zdjęcie', 'zdjęcia', 'zdjęć')} zaznaczone</p>
+                    <p className="text-sm font-medium">{selectedPhotoIds.length} ${pluralizePolish(selectedPhotoIds.length, 'zdjęcie', 'zdjęcia', 'zdjęć')} zaznaczone</p>
                     <div className="flex items-center gap-2 flex-wrap justify-end self-end sm:self-center">
                       <button onClick={clearSelection} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white rounded-md hover:bg-gray-700/50">Wyczyść</button>
                       <button onClick={() => setIsProjectSelectorOpen(true)} className="px-3 py-1.5 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white">Przypisz do projektu</button>

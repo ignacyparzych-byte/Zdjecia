@@ -39,12 +39,12 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onSelect, onDelete, selec
             <div
               key={photo.id}
               onClick={() => onSelect(photo)}
-              className={`group relative aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg transform hover:scale-105 transition-all duration-300 ${isSelected ? 'ring-4 ring-green-500 ring-offset-2 ring-offset-gray-900' : ''}`}
+              className={`group relative aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg hover:shadow-xl hover:shadow-green-500/25 transition-shadow duration-300 ${isSelected ? 'ring-4 ring-green-500 ring-offset-2 ring-offset-gray-900' : ''}`}
             >
               <img
                 src={photo.url}
                 alt={photo.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-in-out"
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
               
@@ -60,6 +60,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onSelect, onDelete, selec
                 )}
               </button>
               
+              {/* FIX: Use `photo.id` which is defined in the map loop, instead of the undefined `photoId`. */}
               <button
                 onClick={(e) => handleDelete(e, photo.id)}
                 className="absolute top-2 right-2 p-1.5 bg-red-600/70 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all duration-300 transform scale-75 group-hover:scale-100 z-10"
