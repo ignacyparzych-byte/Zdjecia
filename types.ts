@@ -6,6 +6,7 @@ export interface Photo {
   size: number;
   description: string | null;
   projectId: string | null;
+  storagePath?: string;
   location?: { lat: number; lng: number };
   createdAt: string; // ISO string for when it was uploaded
   takenAt: string;   // ISO string for when the photo was taken (from file metadata)

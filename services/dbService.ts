@@ -49,9 +49,7 @@ export const addPhoto = async (photo: Photo): Promise<void> => {
   const db = await initDB();
   const tx = db.transaction(PHOTO_STORE, 'readwrite');
   const store = tx.objectStore(PHOTO_STORE);
-  // Do not store the transient blob URL in the database
-  const { url, ...photoToStore } = photo;
-  store.add(photoToStore);
+  store.add(photo);
   return transactionPromise(tx);
 };
 
@@ -63,13 +61,8 @@ export const getPhotos = async (): Promise<Photo[]> => {
 
     return new Promise((resolve, reject) => {
         request.onsuccess = () => {
-            const photosFromDB = request.result;
-            // Create a new blob URL for each photo for display
-            const photosWithUrls: Photo[] = photosFromDB.map(p => ({
-                ...p,
-                url: URL.createObjectURL(p.file)
-            }));
-            resolve(photosWithUrls);
+            // Po prostu zwracamy obiekty z bazy danych. URL jest już w nich zawarty.
+            resolve(request.result);
         };
         request.onerror = () => reject(request.error);
     });
@@ -79,8 +72,7 @@ export const updatePhoto = async (photo: Photo): Promise<void> => {
     const db = await initDB();
     const tx = db.transaction(PHOTO_STORE, 'readwrite');
     const store = tx.objectStore(PHOTO_STORE);
-    const { url, ...photoToStore } = photo;
-    store.put(photoToStore);
+    store.put(photo);
     return transactionPromise(tx);
 };
 

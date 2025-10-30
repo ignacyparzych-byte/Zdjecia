@@ -13,6 +13,7 @@ import { getCurrentPosition } from './services/geolocationService';
 import { SparklesIcon, PencilIcon, SpinnerIcon } from './components/Icons';
 import PhotoSearchBar from './components/PhotoSearchBar';
 import * as dbService from './services/dbService';
+import * as firebaseService from './services/firebaseService';
 
 // Helper to fetch a placeholder image and convert it to a File object
 const createSampleFile = async (url: string, name: string): Promise<File> => {
@@ -230,12 +231,45 @@ const App: React.FC = () => {
       }
     });
     
+    // Add to state and DB immediately for UI responsiveness
     newPhotos.forEach(p => dbService.addPhoto(p));
     setPhotos(p => [...newPhotos, ...p]);
     setIsLoading(false);
+
+    // Now, start uploading to Firebase in the background
+    for (const newPhoto of newPhotos) {
+        try {
+            const { storagePath, downloadURL } = await firebaseService.uploadPhoto(newPhoto.file);
+            // Upload successful, create the updated photo object
+            const updatedPhoto = { ...newPhoto, storagePath, url: downloadURL };
+            
+            // Update in DB
+            await dbService.updatePhoto(updatedPhoto);
+            
+            // Update in state, replacing the temporary local version
+            setPhotos(currentPhotos => 
+                currentPhotos.map(p => p.id === newPhoto.id ? updatedPhoto : p)
+            );
+        } catch (error) {
+            console.error(`Failed to upload ${newPhoto.name} to Firebase:`, error);
+            // Optionally, we could add an upload-failed status to the photo object
+        }
+    }
   }, [projects]);
 
-  const handleDeletePhoto = (photoId: string) => {
+  const handleDeletePhoto = async (photoId: string) => {
+    const photoToDelete = photos.find(p => p.id === photoId);
+    if (!photoToDelete) return;
+
+    if (photoToDelete.storagePath) {
+        try {
+            await firebaseService.deletePhotoFromStorage(photoToDelete.storagePath);
+        } catch (error) {
+            console.error("Could not delete photo from Firebase, proceeding with local deletion.", error);
+            alert("Nie udało się usunąć zdjęcia z chmury. Zostanie ono usunięte tylko lokalnie.");
+        }
+    }
+    
     dbService.deletePhoto(photoId);
     setPhotos(photos.filter(p => p.id !== photoId));
     setSelectedPhotoIds(ids => ids.filter(id => id !== photoId));
@@ -247,7 +281,21 @@ const App: React.FC = () => {
   const handleBulkDelete = () => {
     const count = selectedPhotoIds.length;
     const photoWord = pluralizePolish(count, 'zdjęcie', 'zdjęcia', 'zdjęć');
-    if (window.confirm(`Czy na pewno chcesz usunąć ${count} ${photoWord}?`)) {
+    if (window.confirm(`Czy na pewno chcesz usunąć ${count} ${photoWord}? Spowoduje to również usunięcie ich z chmury.`)) {
+      const photosToDelete = photos.filter(p => selectedPhotoIds.includes(p.id));
+      
+      // Asynchronously delete from Firebase
+      photosToDelete.forEach(async (photo) => {
+        if (photo.storagePath) {
+          try {
+            await firebaseService.deletePhotoFromStorage(photo.storagePath);
+          } catch (error) {
+            console.error(`Failed to delete ${photo.name} from Firebase.`, error);
+          }
+        }
+      });
+
+      // Then delete locally
       selectedPhotoIds.forEach(id => dbService.deletePhoto(id));
       setPhotos(photos.filter(p => !selectedPhotoIds.includes(p.id)));
       setSelectedPhotoIds([]);
