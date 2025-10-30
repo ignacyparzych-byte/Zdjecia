@@ -48,8 +48,9 @@ const seedInitialData = async () => {
         { url: 'https://picsum.photos/seed/un_a/800/600', name: 'pomiar-geodezyjny.jpg', projectId: null, desc: "Geodeta wykonujący pomiary kontrolne terenu." },
         { url: 'https://picsum.photos/seed/un_b/800/600', name: 'dostawa-materialow.jpg', projectId: null, desc: "Ciężarówka z dostawą materiałów budowlanych na plac." },
     ];
-
-    const samplePhotosPromises = photoInfos.map(async (info) => {
+    
+    const samplePhotos: Photo[] = [];
+    for (const info of photoInfos) {
         const file = await createSampleFile(info.url, info.name);
         const photo: Photo = {
             id: uuidv4(),
@@ -62,21 +63,19 @@ const seedInitialData = async () => {
             createdAt: new Date(Date.now() - Math.random() * 1000 * 3600 * 24 * 3).toISOString(), // random upload date in last 3 days
             takenAt: new Date(Date.now() - Math.random() * 1000 * 3600 * 24 * 30).toISOString(), // random taken date in last 30 days
         };
-        // For seeding, we'll upload them to Firebase as well to simulate real data
+
         try {
+            console.log(`Uploading ${file.name} to Firebase...`);
             const { storagePath, downloadURL } = await firebaseService.uploadPhoto(file);
             const finalPhoto = { ...photo, url: downloadURL, storagePath, file: undefined };
             await dbService.addPhoto(finalPhoto);
-            return finalPhoto;
+            samplePhotos.push(finalPhoto);
         } catch (e) {
-            console.error("Failed to seed photo to Firebase, adding locally only", e);
+            console.error(`Failed to seed photo ${file.name} to Firebase, adding locally only`, e);
             await dbService.addPhoto(photo);
-            return photo;
+            samplePhotos.push(photo);
         }
-    });
-
-
-    const samplePhotos = await Promise.all(samplePhotosPromises);
+    }
     
     console.log("Seeding complete.");
     return { sampleProjects, samplePhotos };
